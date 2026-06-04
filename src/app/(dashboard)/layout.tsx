@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getRepos } from "@/lib/config";
+import { getSettings } from "@/lib/settings";
 import { Sidebar } from "@/components/sidebar";
 import { NavLinks } from "@/components/nav-links";
 
@@ -10,7 +10,7 @@ export default async function DashboardLayout({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const repos = getRepos().map((r) => r.fullName);
+  const { repos } = await getSettings(session.userId);
 
   return (
     <div className="flex min-h-screen w-full">
@@ -27,22 +27,7 @@ export default async function DashboardLayout({
           </div>
           <NavLinks horizontal />
         </header>
-        <main className="flex-1 p-4 md:p-6">
-          {repos.length === 0 ? (
-            <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
-              No repositories configured. Set the{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
-                GITHUB_REPOS
-              </code>{" "}
-              environment variable, e.g.{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
-                myorg/fe,myorg/admin,myorg/be
-              </code>
-            </div>
-          ) : (
-            children
-          )}
-        </main>
+        <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
 import { Octokit } from "octokit";
-import { getRepos } from "./config";
 import { isRunning } from "./status";
 
 export type WorkflowRun = {
@@ -39,6 +38,16 @@ export type PullRequest = {
 
 export type RepoError = { repo: string; message: string };
 
+/** Parse "owner/repo" full names, skipping malformed entries */
+function parseRepos(fullNames: string[]) {
+  return fullNames
+    .map((fullName) => {
+      const [owner, repo] = fullName.split("/");
+      return owner && repo ? { owner, repo, fullName } : null;
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+}
+
 function errorMessage(err: unknown): string {
   if (err && typeof err === "object" && "status" in err && err.status === 404) {
     return "Not found — check repo name & OAuth app access to the org";
@@ -46,12 +55,15 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-export async function getWorkflowRuns(token: string): Promise<{
+export async function getWorkflowRuns(
+  token: string,
+  repoFullNames: string[]
+): Promise<{
   runs: WorkflowRun[];
   errors: RepoError[];
 }> {
   const octokit = new Octokit({ auth: token });
-  const repos = getRepos();
+  const repos = parseRepos(repoFullNames);
 
   const results = await Promise.allSettled(
     repos.map(async ({ owner, repo, fullName }) => {
@@ -101,12 +113,15 @@ export async function getWorkflowRuns(token: string): Promise<{
   return { runs, errors };
 }
 
-export async function getOpenPullRequests(token: string): Promise<{
+export async function getOpenPullRequests(
+  token: string,
+  repoFullNames: string[]
+): Promise<{
   pullRequests: PullRequest[];
   errors: RepoError[];
 }> {
   const octokit = new Octokit({ auth: token });
-  const repos = getRepos();
+  const repos = parseRepos(repoFullNames);
 
   const results = await Promise.allSettled(
     repos.map(async ({ owner, repo, fullName }) => {
@@ -156,4 +171,38 @@ export async function getOpenPullRequests(token: string): Promise<{
   pullRequests.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
   return { pullRequests, errors };
+}
+
+export type AccessibleRepo = {
+  fullName: string;
+  private: boolean;
+  description: string | null;
+  pushedAt: string | null;
+};
+
+/** Repos the token can access (own + collaborator + org member), most recently pushed first */
+export async function listAccessibleRepos(
+  token: string
+): Promise<AccessibleRepo[]> {
+  const octokit = new Octokit({ auth: token });
+  const repos = [];
+  // Cap at 3 pages (300 repos) to keep the picker snappy
+  for (let page = 1; page <= 3; page++) {
+    const { data } = await octokit.rest.repos.listForAuthenticatedUser({
+      per_page: 100,
+      page,
+      sort: "pushed",
+      direction: "desc",
+      affiliation: "owner,collaborator,organization_member",
+    });
+    repos.push(...data);
+    if (data.length < 100) break;
+  }
+
+  return repos.map((r) => ({
+    fullName: r.full_name,
+    private: r.private,
+    description: r.description,
+    pushedAt: r.pushed_at ?? null,
+  }));
 }

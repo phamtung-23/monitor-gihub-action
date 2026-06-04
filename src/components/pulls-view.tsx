@@ -84,7 +84,7 @@ function RepoColumn({
       <CardHeader>
         <CardTitle className="flex items-center justify-between gap-2 text-sm">
           <span className="truncate font-mono">{shortName}</span>
-          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
             {pullRequests.length}
           </span>
         </CardTitle>
@@ -127,7 +127,7 @@ export function PullsView({ repos }: { repos: string[] }) {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-lg font-semibold">Pull Requests</h1>
         {total > 0 && (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
             {total} open
           </span>
         )}

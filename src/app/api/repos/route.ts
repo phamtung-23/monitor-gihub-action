@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getSettings } from "@/lib/settings";
-import { getWorkflowRuns } from "@/lib/github";
+import { listAccessibleRepos } from "@/lib/github";
 
 export async function GET() {
   const session = await auth();
@@ -9,11 +9,19 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // User's PAT (if configured) bypasses org OAuth App access restrictions
   const settings = await getSettings(session.userId);
   const token = settings.pat || session.accessToken;
-  const data = await getWorkflowRuns(token, settings.repos);
-  return NextResponse.json(data, {
-    headers: { "Cache-Control": "no-store" },
-  });
+
+  try {
+    const repos = await listAccessibleRepos(token);
+    return NextResponse.json(
+      { repos },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to list repositories from GitHub" },
+      { status: 502 }
+    );
+  }
 }
