@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import {
   NOTIFICATIONS_PREF_KEY,
+  ensureServiceWorker,
   notificationsEnabled,
   notificationsSupported,
+  showNotification,
 } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 
@@ -29,9 +31,13 @@ export function NotificationsToggle() {
     if (permission === "granted") {
       localStorage.setItem(NOTIFICATIONS_PREF_KEY, "on");
       setEnabled(true);
-      new Notification("Deploy Monitor", {
-        body: "Notifications enabled — you'll hear about new & merged PRs 🎉",
-      });
+      await ensureServiceWorker();
+      await showNotification(
+        "Deploy Monitor",
+        "Notifications enabled — you'll hear about new & merged PRs 🎉",
+        "/",
+        "test"
+      );
     } else {
       setDenied(permission === "denied");
     }

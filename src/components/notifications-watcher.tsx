@@ -3,7 +3,11 @@
 import { useEffect, useRef } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
-import { notificationsEnabled, showNotification } from "@/lib/notifications";
+import {
+  ensureServiceWorker,
+  notificationsEnabled,
+  showNotification,
+} from "@/lib/notifications";
 import type { PullRequest, RepoError } from "@/lib/github";
 
 type Data = {
@@ -26,6 +30,11 @@ export function NotificationsWatcher() {
     refreshWhenHidden: true,
   });
   const prev = useRef<Map<number, PullRequest> | null>(null);
+
+  // Register the service worker up-front so the first notification is instant
+  useEffect(() => {
+    if (notificationsEnabled()) ensureServiceWorker();
+  }, []);
 
   useEffect(() => {
     if (!data) return;
