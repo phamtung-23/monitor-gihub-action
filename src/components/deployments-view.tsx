@@ -123,7 +123,7 @@ export function DeploymentsView({ repos }: { repos: string[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="sticky top-0 z-10 -mx-4 -mt-4 flex h-14 shrink-0 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur md:-mx-6 md:-mt-6 md:px-6">
         <h1 className="text-lg font-semibold">Deployments</h1>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-xs text-muted-foreground">

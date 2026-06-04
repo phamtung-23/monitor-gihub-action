@@ -121,7 +121,7 @@ function TokenCard({
             value={pat}
             onChange={(e) => setPat(e.target.value)}
             autoComplete="off"
-            className="max-w-sm font-mono"
+            className="flex-1 font-mono"
           />
           <Button type="submit" disabled={saving || !pat.trim()}>
             {saving ? "Validating..." : "Save token"}
@@ -232,7 +232,7 @@ function ReposCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           Repositories to monitor
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
             {selected.size} selected
           </span>
         </CardTitle>
@@ -254,7 +254,7 @@ function ReposCard({
             placeholder="Search repositories..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm"
+            className="flex-1"
           />
           <Button onClick={save} disabled={saving}>
             {saving ? "Saving..." : "Save repositories"}
@@ -271,7 +271,7 @@ function ReposCard({
             placeholder="Add manually: owner/repo"
             value={manual}
             onChange={(e) => setManual(e.target.value)}
-            className="max-w-sm font-mono"
+            className="flex-1 font-mono"
           />
           <Button type="submit" variant="outline" disabled={!manual.trim()}>
             Add
@@ -353,10 +353,14 @@ export function SettingsView() {
   }
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
-      <h1 className="text-lg font-semibold">Settings</h1>
-      <TokenCard settings={settings} onSaved={onSaved} />
-      <ReposCard settings={settings} onSaved={onSaved} />
+    <div className="flex flex-col gap-4">
+      <div className="sticky top-0 z-10 -mx-4 -mt-4 flex h-14 shrink-0 items-center border-b bg-background/90 px-4 backdrop-blur md:-mx-6 md:-mt-6 md:px-6">
+        <h1 className="text-lg font-semibold">Settings</h1>
+      </div>
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+        <TokenCard settings={settings} onSaved={onSaved} />
+        <ReposCard settings={settings} onSaved={onSaved} />
+      </div>
     </div>
   );
 }
