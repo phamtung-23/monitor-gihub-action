@@ -2,6 +2,7 @@ import { signOut } from "@/auth";
 import { NavLinks } from "@/components/nav-links";
 import { NotificationsToggle } from "@/components/notifications-toggle";
 import { repoDotClass } from "@/components/repo-badge";
+import { RocketEarthIcon } from "@/components/rocket-earth-icon";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -14,7 +15,7 @@ export function Sidebar({ repos, user }: Props) {
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r bg-card md:flex">
       <div className="flex h-14 items-center gap-2 border-b px-4">
-        <span className="text-lg">🚀</span>
+        <RocketEarthIcon className="size-8 shrink-0" />
         <span className="text-sm font-semibold">Deploy Monitor</span>
       </div>
 

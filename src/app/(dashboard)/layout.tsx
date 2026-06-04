@@ -4,6 +4,7 @@ import { getSettings } from "@/lib/settings";
 import { Sidebar } from "@/components/sidebar";
 import { NavLinks } from "@/components/nav-links";
 import { NotificationsWatcher } from "@/components/notifications-watcher";
+import { RocketEarthIcon } from "@/components/rocket-earth-icon";
 
 export default async function DashboardLayout({
   children,
@@ -24,7 +25,7 @@ export default async function DashboardLayout({
         {/* Mobile top bar — sidebar is hidden below md */}
         <header className="flex flex-col gap-2 border-b p-3 md:hidden">
           <div className="flex items-center gap-2">
-            <span className="text-lg">🚀</span>
+            <RocketEarthIcon className="size-8 shrink-0" />
             <span className="text-sm font-semibold">Deploy Monitor</span>
           </div>
           <NavLinks horizontal />

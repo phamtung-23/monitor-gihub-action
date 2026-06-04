@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
+import { RocketEarthIcon } from "@/components/rocket-earth-icon";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,6 +24,7 @@ export default async function LoginPage({
     <div className="flex flex-1 items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
+          <RocketEarthIcon className="mx-auto size-10" />
           <CardTitle className="text-2xl">Deploy Monitor</CardTitle>
           <CardDescription>
             Sign in with your GitHub account to view deployments and pull

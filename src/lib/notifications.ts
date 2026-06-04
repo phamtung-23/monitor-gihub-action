@@ -21,7 +21,7 @@ export function showNotification(
   tag: string
 ) {
   if (!notificationsEnabled()) return;
-  const n = new Notification(title, { body, tag, icon: "/favicon.ico" });
+  const n = new Notification(title, { body, tag, icon: "/icon.png" });
   n.onclick = () => {
     window.focus();
     window.open(url, "_blank", "noopener,noreferrer");
