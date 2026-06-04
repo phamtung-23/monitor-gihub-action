@@ -36,7 +36,12 @@ export type PullRequest = {
   labels: { name: string; color: string }[];
   /** UNKNOWN while GitHub is still computing, or when the lookup failed */
   mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+  state: "open" | "closed";
+  /** Set when a closed PR was merged (vs just closed) */
+  mergedAt: string | null;
 };
+
+export type PullRequestState = "open" | "closed";
 
 export type RepoError = { repo: string; message: string };
 
@@ -57,6 +62,66 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+type RunData = Awaited<
+  ReturnType<Octokit["rest"]["actions"]["listWorkflowRunsForRepo"]>
+>["data"]["workflow_runs"][number];
+
+type PullData = Awaited<
+  ReturnType<Octokit["rest"]["pulls"]["list"]>
+>["data"][number];
+
+export const PAGE_SIZE = 10;
+
+function mapRun(run: RunData, fullName: string): WorkflowRun {
+  return {
+    id: run.id,
+    repo: fullName,
+    workflowName: run.name ?? "workflow",
+    displayTitle: run.display_title,
+    runNumber: run.run_number,
+    branch: run.head_branch,
+    event: run.event,
+    status: run.status,
+    conclusion: run.conclusion,
+    actor: run.actor
+      ? { login: run.actor.login, avatarUrl: run.actor.avatar_url }
+      : null,
+    createdAt: run.created_at,
+    runStartedAt: run.run_started_at ?? null,
+    updatedAt: run.updated_at,
+    htmlUrl: run.html_url,
+  };
+}
+
+function mapPull(pr: PullData, fullName: string): PullRequest {
+  return {
+    id: pr.id,
+    repo: fullName,
+    number: pr.number,
+    title: pr.title,
+    author: pr.user
+      ? { login: pr.user.login, avatarUrl: pr.user.avatar_url }
+      : null,
+    headRef: pr.head.ref,
+    baseRef: pr.base.ref,
+    draft: pr.draft ?? false,
+    createdAt: pr.created_at,
+    updatedAt: pr.updated_at,
+    htmlUrl: pr.html_url,
+    requestedReviewers: (pr.requested_reviewers ?? []).map((r) => ({
+      login: r.login,
+      avatarUrl: r.avatar_url,
+    })),
+    labels: (pr.labels ?? []).map((l) => ({
+      name: l.name,
+      color: l.color ?? "ededed",
+    })),
+    mergeable: "UNKNOWN",
+    state: pr.state === "closed" ? "closed" : "open",
+    mergedAt: pr.merged_at ?? null,
+  };
+}
+
 export async function getWorkflowRuns(
   token: string,
   repoFullNames: string[]
@@ -72,28 +137,9 @@ export async function getWorkflowRuns(
       const { data } = await octokit.rest.actions.listWorkflowRunsForRepo({
         owner,
         repo,
-        per_page: 10,
+        per_page: PAGE_SIZE,
       });
-      return data.workflow_runs.map(
-        (run): WorkflowRun => ({
-          id: run.id,
-          repo: fullName,
-          workflowName: run.name ?? "workflow",
-          displayTitle: run.display_title,
-          runNumber: run.run_number,
-          branch: run.head_branch,
-          event: run.event,
-          status: run.status,
-          conclusion: run.conclusion,
-          actor: run.actor
-            ? { login: run.actor.login, avatarUrl: run.actor.avatar_url }
-            : null,
-          createdAt: run.created_at,
-          runStartedAt: run.run_started_at ?? null,
-          updatedAt: run.updated_at,
-          htmlUrl: run.html_url,
-        })
-      );
+      return data.workflow_runs.map((run) => mapRun(run, fullName));
     })
   );
 
@@ -115,9 +161,10 @@ export async function getWorkflowRuns(
   return { runs, errors };
 }
 
-export async function getOpenPullRequests(
+export async function getPullRequests(
   token: string,
-  repoFullNames: string[]
+  repoFullNames: string[],
+  state: PullRequestState = "open"
 ): Promise<{
   pullRequests: PullRequest[];
   errors: RepoError[];
@@ -130,37 +177,12 @@ export async function getOpenPullRequests(
       const { data } = await octokit.rest.pulls.list({
         owner,
         repo,
-        state: "open",
-        per_page: 50,
+        state,
+        per_page: PAGE_SIZE,
         sort: "updated",
         direction: "desc",
       });
-      return data.map(
-        (pr): PullRequest => ({
-          id: pr.id,
-          repo: fullName,
-          number: pr.number,
-          title: pr.title,
-          author: pr.user
-            ? { login: pr.user.login, avatarUrl: pr.user.avatar_url }
-            : null,
-          headRef: pr.head.ref,
-          baseRef: pr.base.ref,
-          draft: pr.draft ?? false,
-          createdAt: pr.created_at,
-          updatedAt: pr.updated_at,
-          htmlUrl: pr.html_url,
-          requestedReviewers: (pr.requested_reviewers ?? []).map((r) => ({
-            login: r.login,
-            avatarUrl: r.avatar_url,
-          })),
-          labels: (pr.labels ?? []).map((l) => ({
-            name: l.name,
-            color: l.color ?? "ededed",
-          })),
-          mergeable: "UNKNOWN" as const,
-        })
-      );
+      return data.map((pr) => mapPull(pr, fullName));
     })
   );
 
@@ -175,7 +197,8 @@ export async function getOpenPullRequests(
 
   // Conflict status isn't in the REST list endpoint — one GraphQL query
   // fetches `mergeable` for every open PR across all repos at once.
-  if (pullRequests.length > 0) {
+  // (Irrelevant for closed PRs.)
+  if (state === "open" && pullRequests.length > 0) {
     try {
       const fields = repos
         .map(
@@ -212,6 +235,71 @@ export async function getOpenPullRequests(
   }
 
   return { pullRequests, errors };
+}
+
+/** One page of older workflow runs for a single repo (page 1 = the dashboard's aggregated fetch) */
+export async function getWorkflowRunsPage(
+  token: string,
+  repoFullName: string,
+  page: number
+): Promise<WorkflowRun[]> {
+  const [owner, repo] = repoFullName.split("/");
+  const octokit = new Octokit({ auth: token });
+  const { data } = await octokit.rest.actions.listWorkflowRunsForRepo({
+    owner,
+    repo,
+    per_page: PAGE_SIZE,
+    page,
+  });
+  return data.workflow_runs.map((run) => mapRun(run, repoFullName));
+}
+
+/** One page of older pull requests for a single repo */
+export async function getPullRequestsPage(
+  token: string,
+  repoFullName: string,
+  state: PullRequestState,
+  page: number
+): Promise<PullRequest[]> {
+  const [owner, repo] = repoFullName.split("/");
+  const octokit = new Octokit({ auth: token });
+  const { data } = await octokit.rest.pulls.list({
+    owner,
+    repo,
+    state,
+    per_page: PAGE_SIZE,
+    page,
+    sort: "updated",
+    direction: "desc",
+  });
+  const pullRequests = data.map((pr) => mapPull(pr, repoFullName));
+
+  // Conflict status for this page's open PRs — one GraphQL query by number
+  if (state === "open" && pullRequests.length > 0) {
+    try {
+      const fields = pullRequests
+        .map((pr) => `p${pr.number}: pullRequest(number: ${pr.number}) { number mergeable }`)
+        .join("\n");
+      const result = await octokit.graphql<{
+        repository: Record<string, { number: number; mergeable: string } | null>;
+      }>(
+        `query { repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(repo)}) { ${fields} } }`
+      );
+      const byNumber = new Map(
+        Object.values(result.repository)
+          .filter((node): node is { number: number; mergeable: string } => !!node)
+          .map((node) => [node.number, node.mergeable])
+      );
+      for (const pr of pullRequests) {
+        const m = byNumber.get(pr.number);
+        if (m === "MERGEABLE" || m === "CONFLICTING") pr.mergeable = m;
+      }
+    } catch {
+      // Best-effort — page still renders without conflict info
+    }
+  }
+
+  return pullRequests;
 }
 
 export type GithubUser = {

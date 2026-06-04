@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LoadMoreButton } from "@/components/load-more-button";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 import { timeAgo, formatDuration } from "@/lib/format";
@@ -69,7 +70,34 @@ function RepoColumn({
   error?: RepoError;
   isLoading: boolean;
 }) {
-  const runningCount = runs.filter((r) => isRunning(r.status)).length;
+  // Older pages fetched on demand; the polled first page stays live
+  const [extra, setExtra] = useState<WorkflowRun[]>([]);
+  const [nextPage, setNextPage] = useState(2);
+  const [exhausted, setExhausted] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  async function loadMore() {
+    setLoadingMore(true);
+    try {
+      const params = new URLSearchParams({ repo, page: String(nextPage) });
+      const res = await fetch(`/api/workflow-runs/page?${params}`);
+      if (!res.ok) throw new Error();
+      const data: { runs: WorkflowRun[] } = await res.json();
+      if (data.runs.length < 10) setExhausted(true);
+      setExtra((prev) => [...prev, ...data.runs]);
+      setNextPage((p) => p + 1);
+    } catch {
+      // keep the button — user can retry
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  // Dedupe: a new run can push an item from the live page 1 into page 2
+  const seen = new Set(runs.map((r) => r.id));
+  const allRuns = [...runs, ...extra.filter((r) => !seen.has(r.id))];
+
+  const runningCount = allRuns.filter((r) => isRunning(r.status)).length;
   const shortName = repo.split("/")[1] ?? repo;
 
   return (
@@ -100,14 +128,17 @@ function RepoColumn({
           Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 w-full" />
           ))}
-        {!isLoading && !error && runs.length === 0 && (
+        {!isLoading && !error && allRuns.length === 0 && (
           <p className="py-6 text-center text-sm text-muted-foreground">
             No workflow runs.
           </p>
         )}
-        {runs.map((run) => (
+        {allRuns.map((run) => (
           <RunItem key={run.id} run={run} />
         ))}
+        {runs.length >= 10 && !exhausted && (
+          <LoadMoreButton loading={loadingMore} onClick={loadMore} />
+        )}
       </CardContent>
     </Card>
   );
