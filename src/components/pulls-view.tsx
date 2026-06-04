@@ -28,7 +28,7 @@ function PullRequestItem({ pr }: { pr: PullRequest }) {
   return (
     // The title link is stretched over the card; avatars sit above it (z-10)
     // so their hover cards don't fight the link's hover state
-    <div className="group relative flex flex-col gap-1.5 rounded-lg border bg-card p-3 transition-colors hover:bg-accent">
+    <div className="group relative flex w-72 shrink-0 flex-col gap-1.5 rounded-lg border bg-card p-3 transition-colors hover:bg-accent md:w-auto md:shrink">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {pr.author && (
@@ -191,7 +191,7 @@ function RepoColumn({
   const shortName = repo.split("/")[1] ?? repo;
 
   return (
-    <Card className="flex min-w-80 flex-1 flex-col bg-muted/50">
+    <Card className="flex w-full min-w-0 flex-col bg-muted/50 md:min-w-80 md:flex-1">
       <CardHeader>
         <CardTitle className="flex items-center justify-between gap-2 text-sm">
           <span className="truncate font-mono">{shortName}</span>
@@ -200,18 +200,19 @@ function RepoColumn({
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+      {/* Mobile: items scroll horizontally. md+: vertical list. */}
+      <CardContent className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible">
         {error && (
-          <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          <p className="w-full shrink-0 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {error.message}
           </p>
         )}
         {isLoading &&
           Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full" />
+            <Skeleton key={i} className="h-24 w-72 shrink-0 md:w-full" />
           ))}
         {!isLoading && !error && allPulls.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-6 text-muted-foreground">
+          <div className="flex w-full shrink-0 flex-col items-center gap-2 py-6 text-muted-foreground">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -233,7 +234,11 @@ function RepoColumn({
           <PullRequestItem key={pr.id} pr={pr} />
         ))}
         {pullRequests.length >= 10 && !exhausted && (
-          <LoadMoreButton loading={loadingMore} onClick={loadMore} />
+          <LoadMoreButton
+            loading={loadingMore}
+            onClick={loadMore}
+            className="w-28 shrink-0 self-center md:w-full"
+          />
         )}
       </CardContent>
     </Card>
@@ -263,7 +268,7 @@ export function PullsView({ repos }: { repos: string[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="sticky top-0 z-20 -mx-4 -mt-4 flex h-14 shrink-0 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur md:-mx-6 md:-mt-6 md:px-6">
+      <div className="sticky top-0 z-20 -mx-4 -mt-4 flex min-h-14 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b bg-background/90 px-4 py-2 backdrop-blur md:-mx-6 md:-mt-6 md:h-14 md:px-6 md:py-0">
         <h1 className="text-lg font-semibold">Pull Requests</h1>
         {openTotal > 0 && (
           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
@@ -296,7 +301,7 @@ export function PullsView({ repos }: { repos: string[] }) {
           </SelectContent>
         </Select>
         <div className="ml-auto flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">
+          <span className="hidden text-xs text-muted-foreground sm:inline">
             {lastUpdated
               ? `Updated ${lastUpdated.toLocaleTimeString()}`
               : "Auto-refreshes every 15s"}
@@ -312,7 +317,8 @@ export function PullsView({ repos }: { repos: string[] }) {
       )}
 
       {/* Few repos: columns stretch to fill. Many repos: horizontal scroll. */}
-      <div className="-m-1 flex items-start gap-4 overflow-x-auto p-1 pb-2">
+      {/* Mobile: repos stack vertically. md+: kanban columns with horizontal scroll. */}
+      <div className="-m-1 flex flex-col gap-4 p-1 pb-2 md:flex-row md:items-start md:overflow-x-auto">
         {repos.map((repo) => (
           <RepoColumn
             key={`${repo}-${state}`}

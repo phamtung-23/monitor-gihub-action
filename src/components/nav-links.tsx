@@ -63,9 +63,11 @@ const ICONS = {
 export function NavLinks({
   horizontal = false,
   collapsed = false,
+  onNavigate,
 }: {
   horizontal?: boolean;
   collapsed?: boolean;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
 
@@ -120,6 +122,7 @@ export function NavLinks({
           <Link
             key={item.href}
             href={item.href}
+            onClick={onNavigate}
             title={collapsed ? item.label : undefined}
             className={cn(
               "flex items-center rounded-md py-2 text-sm font-medium transition-colors",

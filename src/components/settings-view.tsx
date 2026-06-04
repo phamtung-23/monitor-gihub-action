@@ -232,7 +232,7 @@ export function SettingsView() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="sticky top-0 z-20 -mx-4 -mt-4 flex h-14 shrink-0 items-center border-b bg-background/90 px-4 backdrop-blur md:-mx-6 md:-mt-6 md:px-6">
+      <div className="sticky top-0 z-20 -mx-4 -mt-4 flex min-h-14 shrink-0 items-center border-b bg-background/90 px-4 py-2 backdrop-blur md:-mx-6 md:-mt-6 md:h-14 md:px-6 md:py-0">
         <h1 className="text-lg font-semibold">Settings</h1>
       </div>
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
