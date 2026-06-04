@@ -7,7 +7,8 @@ One dashboard to monitor **GitHub Actions deployments** and **open pull requests
 - ✅ Sign in with GitHub (optionally restricted to your organization's members)
 - ✅ **Per-user setup in the app**: each user picks the repositories to monitor and can optionally paste their own classic PAT (Settings page) — no redeploy needed
 - ✅ Auto-refreshes every 15s + manual refresh button
-- ✅ Read-only — click any item to open it on GitHub
+- ✅ **Merge PRs right from the dashboard** (confirm dialog, choose merge/squash/rebase)
+- ✅ Click any item to open it on GitHub
 
 **Stack:** Next.js (App Router) · Auth.js v5 · Octokit · SWR · Tailwind + shadcn/ui · deployable on Vercel with zero infra (no database).
 

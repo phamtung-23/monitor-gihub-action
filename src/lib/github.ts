@@ -34,6 +34,8 @@ export type PullRequest = {
   htmlUrl: string;
   requestedReviewers: { login: string; avatarUrl: string }[];
   labels: { name: string; color: string }[];
+  /** UNKNOWN while GitHub is still computing, or when the lookup failed */
+  mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
 };
 
 export type RepoError = { repo: string; message: string };
@@ -156,6 +158,7 @@ export async function getOpenPullRequests(
             name: l.name,
             color: l.color ?? "ededed",
           })),
+          mergeable: "UNKNOWN" as const,
         })
       );
     })
@@ -169,6 +172,44 @@ export async function getOpenPullRequests(
   });
 
   pullRequests.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+
+  // Conflict status isn't in the REST list endpoint — one GraphQL query
+  // fetches `mergeable` for every open PR across all repos at once.
+  if (pullRequests.length > 0) {
+    try {
+      const fields = repos
+        .map(
+          (r, i) =>
+            `r${i}: repository(owner: ${JSON.stringify(r.owner)}, name: ${JSON.stringify(r.repo)}) {
+              pullRequests(states: OPEN, first: 50) {
+                nodes { number mergeable }
+              }
+            }`
+        )
+        .join("\n");
+      const data = await octokit.graphql<
+        Record<
+          string,
+          { pullRequests: { nodes: { number: number; mergeable: string }[] } } | null
+        >
+      >(`query { ${fields} }`);
+
+      const byRepoAndNumber = new Map<string, string>();
+      repos.forEach((r, i) => {
+        data[`r${i}`]?.pullRequests.nodes.forEach((node) => {
+          byRepoAndNumber.set(`${r.fullName}#${node.number}`, node.mergeable);
+        });
+      });
+      for (const pr of pullRequests) {
+        const state = byRepoAndNumber.get(`${pr.repo}#${pr.number}`);
+        if (state === "MERGEABLE" || state === "CONFLICTING") {
+          pr.mergeable = state;
+        }
+      }
+    } catch {
+      // Conflict info is best-effort — the list still renders without it
+    }
+  }
 
   return { pullRequests, errors };
 }

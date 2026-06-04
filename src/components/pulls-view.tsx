@@ -5,6 +5,9 @@ import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 import { timeAgo } from "@/lib/format";
 import type { PullRequest, RepoError } from "@/lib/github";
+import { ClosePrButton } from "@/components/close-pr-button";
+import { CopyLinkButton } from "@/components/copy-link-button";
+import { MergeButton } from "@/components/merge-button";
 import { RefreshButton } from "@/components/refresh-button";
 import { UserHoverCard } from "@/components/user-hover-card";
 import { Badge } from "@/components/ui/badge";
@@ -33,11 +36,43 @@ function PullRequestItem({ pr }: { pr: PullRequest }) {
             #{pr.number} · {pr.author?.login ?? "unknown"}
           </span>
         </div>
-        {pr.draft && (
-          <Badge variant="secondary" className="shrink-0">
-            Draft
-          </Badge>
-        )}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {pr.mergeable === "CONFLICTING" && (
+            <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="size-3"
+              >
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+              </svg>
+              Conflicts
+            </Badge>
+          )}
+          {pr.mergeable === "MERGEABLE" && (
+            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="size-3"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              Ready to merge
+            </Badge>
+          )}
+          {pr.draft && <Badge variant="secondary">Draft</Badge>}
+        </div>
       </div>
       <a
         href={pr.htmlUrl}
@@ -54,21 +89,30 @@ function PullRequestItem({ pr }: { pr: PullRequest }) {
         <span className="text-xs text-muted-foreground">
           updated {timeAgo(pr.updatedAt)}
         </span>
-        {pr.requestedReviewers.length > 0 && (
-          <div
-            className="relative z-10 flex shrink-0 -space-x-2"
-            title="Requested reviewers"
-          >
-            {pr.requestedReviewers.slice(0, 3).map((r) => (
-              <UserHoverCard
-                key={r.login}
-                login={r.login}
-                avatarUrl={r.avatarUrl}
-                className="size-5 border-2 border-background"
-              />
-            ))}
-          </div>
-        )}
+        <div className="relative z-10 flex shrink-0 items-center gap-2">
+          {pr.requestedReviewers.length > 0 && (
+            <div className="flex -space-x-2" title="Requested reviewers">
+              {pr.requestedReviewers.slice(0, 3).map((r) => (
+                <UserHoverCard
+                  key={r.login}
+                  login={r.login}
+                  avatarUrl={r.avatarUrl}
+                  className="size-5 border-2 border-background"
+                />
+              ))}
+            </div>
+          )}
+          <CopyLinkButton url={pr.htmlUrl} />
+          <ClosePrButton repo={pr.repo} number={pr.number} title={pr.title} />
+          {!pr.draft && (
+            <MergeButton
+              repo={pr.repo}
+              number={pr.number}
+              title={pr.title}
+              hasConflicts={pr.mergeable === "CONFLICTING"}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
