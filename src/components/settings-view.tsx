@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import useSWR, { useSWRConfig } from "swr";
+import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 import type { AccessibleRepo } from "@/lib/github";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-type SettingsData = { hasPat: boolean; repos: string[] };
+type SettingsData = { repos: string[] };
 type ReposData = { repos: AccessibleRepo[] };
 
-const CREATE_TOKEN_URL =
-  "https://github.com/settings/tokens/new?scopes=repo&description=Deploy+Monitor";
-
-async function putSettings(body: { pat?: string; repos?: string[] }) {
+async function putSettings(body: { repos: string[] }) {
   const res = await fetch("/api/settings", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -33,114 +30,6 @@ async function putSettings(body: { pat?: string; repos?: string[] }) {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? "Failed to save settings");
   return data as SettingsData;
-}
-
-function TokenCard({
-  settings,
-  onSaved,
-}: {
-  settings: SettingsData | undefined;
-  onSaved: () => void;
-}) {
-  const [pat, setPat] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(
-    null
-  );
-
-  async function save(value: string) {
-    setSaving(true);
-    setMessage(null);
-    try {
-      await putSettings({ pat: value });
-      setPat("");
-      setMessage({
-        ok: true,
-        text: value
-          ? "Token saved — GitHub data is now fetched with your PAT."
-          : "Token removed — back to using your GitHub login token.",
-      });
-      onSaved();
-    } catch (err) {
-      setMessage({ ok: false, text: (err as Error).message });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">GitHub Token</CardTitle>
-        <CardDescription>
-          By default the dashboard uses your GitHub login token. If your
-          organization blocks OAuth apps, paste a{" "}
-          <a
-            href={CREATE_TOKEN_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-foreground underline underline-offset-2"
-          >
-            classic personal access token
-          </a>{" "}
-          with the <code className="rounded bg-muted px-1 font-mono">repo</code>{" "}
-          scope instead.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Current:</span>
-          {settings?.hasPat ? (
-            <>
-              <Badge className="bg-emerald-600 text-white">
-                Custom PAT (ghp_••••)
-              </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={saving}
-                onClick={() => save("")}
-              >
-                Remove
-              </Button>
-            </>
-          ) : (
-            <Badge variant="secondary">GitHub login token (OAuth)</Badge>
-          )}
-        </div>
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (pat.trim()) save(pat);
-          }}
-        >
-          <Input
-            type="password"
-            placeholder="ghp_..."
-            value={pat}
-            onChange={(e) => setPat(e.target.value)}
-            autoComplete="off"
-            className="flex-1 font-mono"
-          />
-          <Button type="submit" disabled={saving || !pat.trim()}>
-            {saving ? "Validating..." : "Save token"}
-          </Button>
-        </form>
-        {message && (
-          <p
-            className={
-              message.ok
-                ? "text-sm text-emerald-600"
-                : "rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            }
-          >
-            {message.text}
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
 }
 
 function ReposCard({
@@ -238,17 +127,10 @@ function ReposCard({
         </CardTitle>
         <CardDescription>
           Pick the repositories whose deployments and pull requests you want on
-          the dashboard.
+          the dashboard. The list shows repos your token can access.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {!settings?.hasPat && (
-          <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-            This list is fetched with your GitHub login token (OAuth). Private
-            repos in organizations that restrict OAuth apps won&apos;t appear —
-            paste a classic PAT above, or add the repo manually below.
-          </p>
-        )}
         <div className="flex flex-wrap items-center gap-2">
           <Input
             placeholder="Search repositories..."
@@ -297,7 +179,7 @@ function ReposCard({
           Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-10 w-full" />
           ))}
-        <div className="flex max-h-[28rem] flex-col gap-0.5 overflow-y-auto">
+        <div className="flex max-h-112 flex-col gap-0.5 overflow-y-auto">
           {visible.map((repo) => (
             <label
               key={repo.fullName}
@@ -337,7 +219,6 @@ function ReposCard({
 
 export function SettingsView() {
   const router = useRouter();
-  const { mutate: globalMutate } = useSWRConfig();
   const { data: settings, mutate } = useSWR<SettingsData>(
     "/api/settings",
     fetcher,
@@ -346,19 +227,15 @@ export function SettingsView() {
 
   function onSaved() {
     mutate();
-    // The repo list is fetched with the effective token — refetch it after a
-    // token change so org repos hidden from the OAuth token show up
-    globalMutate("/api/repos");
     router.refresh(); // sidebar repo list is server-rendered from the cookie
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="sticky top-0 z-10 -mx-4 -mt-4 flex h-14 shrink-0 items-center border-b bg-background/90 px-4 backdrop-blur md:-mx-6 md:-mt-6 md:px-6">
+      <div className="sticky top-0 z-20 -mx-4 -mt-4 flex h-14 shrink-0 items-center border-b bg-background/90 px-4 backdrop-blur md:-mx-6 md:-mt-6 md:px-6">
         <h1 className="text-lg font-semibold">Settings</h1>
       </div>
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-        <TokenCard settings={settings} onSaved={onSaved} />
         <ReposCard settings={settings} onSaved={onSaved} />
       </div>
     </div>

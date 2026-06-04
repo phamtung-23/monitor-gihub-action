@@ -190,7 +190,7 @@ export function PullsView({ repos }: { repos: string[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="sticky top-0 z-10 -mx-4 -mt-4 flex h-14 shrink-0 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur md:-mx-6 md:-mt-6 md:px-6">
+      <div className="sticky top-0 z-20 -mx-4 -mt-4 flex h-14 shrink-0 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur md:-mx-6 md:-mt-6 md:px-6">
         <h1 className="text-lg font-semibold">Pull Requests</h1>
         {total > 0 && (
           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">

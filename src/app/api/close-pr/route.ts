@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { Octokit } from "octokit";
-import { auth } from "@/auth";
-import { getSettings } from "@/lib/settings";
+import { getSession } from "@/lib/session";
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.accessToken) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -28,11 +27,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid params" }, { status: 400 });
   }
 
-  const settings = await getSettings(session.userId);
-  const token = settings.pat || session.accessToken;
-
   try {
-    const octokit = new Octokit({ auth: token });
+    const octokit = new Octokit({ auth: session.pat });
     await octokit.rest.pulls.update({
       owner,
       repo: name,

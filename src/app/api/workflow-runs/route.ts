@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { getSession } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
 import { getWorkflowRuns } from "@/lib/github";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.accessToken) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // User's PAT (if configured) bypasses org OAuth App access restrictions
   const settings = await getSettings(session.userId);
-  const token = settings.pat || session.accessToken;
-  const data = await getWorkflowRuns(token, settings.repos);
+  const data = await getWorkflowRuns(session.pat, settings.repos);
   return NextResponse.json(data, {
     headers: { "Cache-Control": "no-store" },
   });

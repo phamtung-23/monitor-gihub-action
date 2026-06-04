@@ -3,8 +3,6 @@ import { cookies } from "next/headers";
 import { EncryptJWT, jwtDecrypt } from "jose";
 
 export type UserSettings = {
-  /** Optional classic PAT — overrides the OAuth token for GitHub data fetching */
-  pat?: string;
   /** Repos to monitor, as "owner/repo" */
   repos: string[];
 };
@@ -37,7 +35,6 @@ export async function getSettings(userId: string): Promise<UserSettings> {
     const { payload } = await jwtDecrypt(raw, await getKey());
     if (payload.uid !== userId) return EMPTY;
     return {
-      pat: typeof payload.pat === "string" && payload.pat ? payload.pat : undefined,
       repos: Array.isArray(payload.repos) ? (payload.repos as string[]) : [],
     };
   } catch {
@@ -52,7 +49,6 @@ export async function sealSettings(
 ): Promise<{ name: string; value: string; options: Record<string, unknown> }> {
   const value = await new EncryptJWT({
     uid: userId,
-    pat: settings.pat ?? "",
     repos: settings.repos,
   })
     .setProtectedHeader({ alg: "dir", enc: "A256GCM" })

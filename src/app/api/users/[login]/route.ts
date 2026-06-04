@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { getSettings } from "@/lib/settings";
+import { getSession } from "@/lib/session";
 import { getUser } from "@/lib/github";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ login: string }> }
 ) {
-  const session = await auth();
-  if (!session?.accessToken) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -17,11 +16,8 @@ export async function GET(
     return NextResponse.json({ error: "Invalid username" }, { status: 400 });
   }
 
-  const settings = await getSettings(session.userId);
-  const token = settings.pat || session.accessToken;
-
   try {
-    const user = await getUser(token, login);
+    const user = await getUser(session.pat, login);
     // Profile data rarely changes — let the browser cache it for 10 minutes
     return NextResponse.json(user, {
       headers: { "Cache-Control": "private, max-age=600" },

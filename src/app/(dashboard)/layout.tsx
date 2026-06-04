@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { getSession } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
 import { Sidebar } from "@/components/sidebar";
 import { NavLinks } from "@/components/nav-links";
@@ -9,7 +9,7 @@ import { RocketEarthIcon } from "@/components/rocket-earth-icon";
 export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const session = await auth();
+  const session = await getSession();
   if (!session) redirect("/login");
 
   const { repos } = await getSettings(session.userId);
@@ -19,7 +19,7 @@ export default async function DashboardLayout({
       <NotificationsWatcher />
       <Sidebar
         repos={repos}
-        user={{ name: session.user?.name, image: session.user?.image }}
+        user={{ name: session.name ?? session.login, image: session.image }}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar — sidebar is hidden below md */}

@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { Octokit } from "octokit";
-import { auth } from "@/auth";
-import { getSettings } from "@/lib/settings";
+import { getSession } from "@/lib/session";
 
 /** Check whether a PR that left the open list was merged or just closed */
 export async function GET(request: Request) {
-  const session = await auth();
-  if (!session?.accessToken) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -18,11 +17,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid params" }, { status: 400 });
   }
 
-  const settings = await getSettings(session.userId);
-  const token = settings.pat || session.accessToken;
-
   try {
-    const octokit = new Octokit({ auth: token });
+    const octokit = new Octokit({ auth: session.pat });
     const { data } = await octokit.rest.pulls.get({
       owner,
       repo: name,

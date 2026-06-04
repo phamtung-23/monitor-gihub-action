@@ -62,7 +62,7 @@ export function Sidebar({ repos, user }: Props) {
   return (
     <aside
       className={cn(
-        "sticky top-0 z-20 hidden h-screen shrink-0 flex-col border-r bg-card md:flex",
+        "sticky top-0 z-30 hidden h-screen shrink-0 flex-col border-r bg-card md:flex",
         mounted && "transition-[width] duration-300 ease-in-out",
         collapsed ? "w-16" : "w-60"
       )}

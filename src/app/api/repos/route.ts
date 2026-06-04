@@ -1,19 +1,15 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { getSettings } from "@/lib/settings";
+import { getSession } from "@/lib/session";
 import { listAccessibleRepos } from "@/lib/github";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.accessToken) {
+  const session = await getSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const settings = await getSettings(session.userId);
-  const token = settings.pat || session.accessToken;
-
   try {
-    const repos = await listAccessibleRepos(token);
+    const repos = await listAccessibleRepos(session.pat);
     return NextResponse.json(
       { repos },
       { headers: { "Cache-Control": "no-store" } }
