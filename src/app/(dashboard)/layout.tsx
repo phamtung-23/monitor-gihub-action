@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { getSettings } from "@/lib/settings";
 import { Sidebar } from "@/components/sidebar";
 import { NavLinks } from "@/components/nav-links";
+import { NotificationsWatcher } from "@/components/notifications-watcher";
 
 export default async function DashboardLayout({
   children,
@@ -14,6 +15,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen w-full">
+      <NotificationsWatcher />
       <Sidebar
         repos={repos}
         user={{ name: session.user?.name, image: session.user?.image }}

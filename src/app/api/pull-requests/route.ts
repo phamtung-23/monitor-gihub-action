@@ -13,7 +13,9 @@ export async function GET() {
   const settings = await getSettings(session.userId);
   const token = settings.pat || session.accessToken;
   const data = await getOpenPullRequests(token, settings.repos);
-  return NextResponse.json(data, {
-    headers: { "Cache-Control": "no-store" },
-  });
+  // repos included so the client can tell "PR closed" apart from "repo unselected"
+  return NextResponse.json(
+    { ...data, repos: settings.repos },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

@@ -1,5 +1,6 @@
 import { signOut } from "@/auth";
 import { NavLinks } from "@/components/nav-links";
+import { NotificationsToggle } from "@/components/notifications-toggle";
 import { repoDotClass } from "@/components/repo-badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -46,7 +47,8 @@ export function Sidebar({ repos, user }: Props) {
         </div>
       </div>
 
-      <div className="border-t p-3">
+      <div className="flex flex-col gap-2 border-t p-3">
+        <NotificationsToggle />
         <div className="flex items-center gap-2.5 px-1">
           <Avatar className="size-7">
             <AvatarImage src={user.image ?? undefined} alt={user.name ?? ""} />
