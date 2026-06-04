@@ -173,6 +173,37 @@ export async function getOpenPullRequests(
   return { pullRequests, errors };
 }
 
+export type GithubUser = {
+  login: string;
+  name: string | null;
+  avatarUrl: string;
+  bio: string | null;
+  company: string | null;
+  location: string | null;
+  followers: number;
+  publicRepos: number;
+  htmlUrl: string;
+};
+
+export async function getUser(
+  token: string,
+  username: string
+): Promise<GithubUser> {
+  const octokit = new Octokit({ auth: token });
+  const { data } = await octokit.rest.users.getByUsername({ username });
+  return {
+    login: data.login,
+    name: data.name,
+    avatarUrl: data.avatar_url,
+    bio: data.bio,
+    company: data.company,
+    location: data.location,
+    followers: data.followers,
+    publicRepos: data.public_repos,
+    htmlUrl: data.html_url,
+  };
+}
+
 export type AccessibleRepo = {
   fullName: string;
   private: boolean;

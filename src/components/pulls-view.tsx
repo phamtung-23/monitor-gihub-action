@@ -6,30 +6,28 @@ import { fetcher } from "@/lib/fetcher";
 import { timeAgo } from "@/lib/format";
 import type { PullRequest, RepoError } from "@/lib/github";
 import { RefreshButton } from "@/components/refresh-button";
+import { UserHoverCard } from "@/components/user-hover-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Data = { pullRequests: PullRequest[]; errors: RepoError[] };
 
 function PullRequestItem({ pr }: { pr: PullRequest }) {
   return (
-    <a
-      href={pr.htmlUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex flex-col gap-1.5 rounded-lg border p-3 transition-colors hover:bg-accent"
-    >
+    // The title link is stretched over the card; avatars sit above it (z-10)
+    // so their hover cards don't fight the link's hover state
+    <div className="group relative flex flex-col gap-1.5 rounded-lg border p-3 transition-colors hover:bg-accent">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {pr.author && (
-            <Avatar className="size-5 shrink-0">
-              <AvatarImage src={pr.author.avatarUrl} alt={pr.author.login} />
-              <AvatarFallback>
-                {pr.author.login[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <span className="relative z-10">
+              <UserHoverCard
+                login={pr.author.login}
+                avatarUrl={pr.author.avatarUrl}
+                className="size-5"
+              />
+            </span>
           )}
           <span className="truncate text-xs text-muted-foreground">
             #{pr.number} · {pr.author?.login ?? "unknown"}
@@ -41,9 +39,14 @@ function PullRequestItem({ pr }: { pr: PullRequest }) {
           </Badge>
         )}
       </div>
-      <p className="line-clamp-2 text-sm font-medium group-hover:underline">
+      <a
+        href={pr.htmlUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="line-clamp-2 text-sm font-medium before:absolute before:inset-0 group-hover:underline"
+      >
         {pr.title}
-      </p>
+      </a>
       <p className="truncate font-mono text-xs text-muted-foreground">
         {pr.headRef} → {pr.baseRef}
       </p>
@@ -52,17 +55,22 @@ function PullRequestItem({ pr }: { pr: PullRequest }) {
           updated {timeAgo(pr.updatedAt)}
         </span>
         {pr.requestedReviewers.length > 0 && (
-          <div className="flex shrink-0 -space-x-2" title="Requested reviewers">
+          <div
+            className="relative z-10 flex shrink-0 -space-x-2"
+            title="Requested reviewers"
+          >
             {pr.requestedReviewers.slice(0, 3).map((r) => (
-              <Avatar key={r.login} className="size-5 border-2 border-background">
-                <AvatarImage src={r.avatarUrl} alt={r.login} />
-                <AvatarFallback>{r.login[0]?.toUpperCase()}</AvatarFallback>
-              </Avatar>
+              <UserHoverCard
+                key={r.login}
+                login={r.login}
+                avatarUrl={r.avatarUrl}
+                className="size-5 border-2 border-background"
+              />
             ))}
           </div>
         )}
       </div>
-    </a>
+    </div>
   );
 }
 

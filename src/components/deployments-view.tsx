@@ -8,32 +8,37 @@ import { isRunning } from "@/lib/status";
 import type { WorkflowRun, RepoError } from "@/lib/github";
 import { StatusBadge } from "@/components/status-badge";
 import { RefreshButton } from "@/components/refresh-button";
+import { UserHoverCard } from "@/components/user-hover-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Data = { runs: WorkflowRun[]; errors: RepoError[] };
 
 function RunItem({ run }: { run: WorkflowRun }) {
   return (
-    <a
-      href={run.htmlUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex flex-col gap-1.5 rounded-lg border p-3 transition-colors hover:bg-accent"
-    >
+    // The title link is stretched over the card; the avatar sits above it
+    // (z-10) so its hover card doesn't fight the link's hover state
+    <div className="group relative flex flex-col gap-1.5 rounded-lg border p-3 transition-colors hover:bg-accent">
       <div className="flex items-center justify-between gap-2">
         <StatusBadge status={run.status} conclusion={run.conclusion} />
         {run.actor && (
-          <Avatar className="size-5 shrink-0">
-            <AvatarImage src={run.actor.avatarUrl} alt={run.actor.login} />
-            <AvatarFallback>{run.actor.login[0]?.toUpperCase()}</AvatarFallback>
-          </Avatar>
+          <span className="relative z-10">
+            <UserHoverCard
+              login={run.actor.login}
+              avatarUrl={run.actor.avatarUrl}
+              className="size-5"
+            />
+          </span>
         )}
       </div>
-      <p className="truncate text-sm font-medium group-hover:underline">
+      <a
+        href={run.htmlUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="truncate text-sm font-medium before:absolute before:inset-0 group-hover:underline"
+      >
         {run.displayTitle}
-      </p>
+      </a>
       <p className="truncate text-xs text-muted-foreground">
         {run.workflowName} #{run.runNumber}
         {run.branch && (
@@ -49,7 +54,7 @@ function RunItem({ run }: { run: WorkflowRun }) {
           <> · took {formatDuration(run.runStartedAt, run.updatedAt)}</>
         )}
       </p>
-    </a>
+    </div>
   );
 }
 
@@ -78,7 +83,8 @@ function RepoColumn({
               {runningCount} running
             </span>
           ) : (
-            <span className="shrink-0 text-xs font-normal text-muted-foreground">
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
               idle
             </span>
           )}
