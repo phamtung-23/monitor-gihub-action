@@ -21,6 +21,9 @@ export function NotificationsWatcher() {
   const { data } = useSWR<Data>("/api/pull-requests", fetcher, {
     refreshInterval: 15_000,
     revalidateOnFocus: true,
+    // Keep polling while the tab is hidden/minimized — that's exactly when
+    // native notifications matter (browser may throttle to ~1/min, still fine)
+    refreshWhenHidden: true,
   });
   const prev = useRef<Map<number, PullRequest> | null>(null);
 
