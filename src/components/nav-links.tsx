@@ -60,7 +60,13 @@ const ICONS = {
   ),
 };
 
-export function NavLinks({ horizontal = false }: { horizontal?: boolean }) {
+export function NavLinks({
+  horizontal = false,
+  collapsed = false,
+}: {
+  horizontal?: boolean;
+  collapsed?: boolean;
+}) {
   const pathname = usePathname();
 
   // Same SWR keys as the page views — deduplicated, no extra requests
@@ -82,30 +88,27 @@ export function NavLinks({ horizontal = false }: { horizontal?: boolean }) {
       href: "/",
       label: "Deployments",
       icon: ICONS.deployments,
-      badge:
-        runningCount > 0 ? (
-          <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-            <span className="size-1.5 animate-pulse rounded-full bg-amber-500" />
-            {runningCount}
-          </span>
-        ) : null,
+      count: runningCount,
+      badgeClass:
+        "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+      dotClass: "bg-amber-500 animate-pulse",
     },
     {
       href: "/pulls",
       label: "Pull Requests",
       icon: ICONS.pulls,
-      badge:
-        prCount > 0 ? (
-          <span className="ml-auto shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-            {prCount}
-          </span>
-        ) : null,
+      count: prCount,
+      badgeClass:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+      dotClass: null,
     },
     {
       href: "/settings",
       label: "Settings",
       icon: ICONS.settings,
-      badge: null,
+      count: 0,
+      badgeClass: "",
+      dotClass: null,
     },
   ];
 
@@ -117,17 +120,52 @@ export function NavLinks({ horizontal = false }: { horizontal?: boolean }) {
           <Link
             key={item.href}
             href={item.href}
+            title={collapsed ? item.label : undefined}
             className={cn(
-              "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              "flex items-center rounded-md py-2 text-sm font-medium transition-colors",
+              collapsed ? "justify-center px-2" : "gap-2.5 px-3",
               horizontal && "flex-1 justify-center",
               active
                 ? "bg-accent text-accent-foreground"
                 : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
             )}
           >
-            {item.icon}
-            {item.label}
-            {item.badge}
+            <span className="relative shrink-0">
+              {item.icon}
+              {collapsed && item.count > 0 && (
+                <span
+                  className={cn(
+                    "absolute -right-2.5 -top-2 min-w-4 rounded-full px-1 text-center text-[10px] font-semibold leading-4",
+                    item.badgeClass
+                  )}
+                >
+                  {item.count}
+                </span>
+              )}
+            </span>
+            <span
+              className={cn(
+                "flex flex-1 items-center gap-2 overflow-hidden whitespace-nowrap transition-opacity duration-200",
+                collapsed ? "w-0 opacity-0" : "opacity-100"
+              )}
+            >
+              {item.label}
+              {item.count > 0 && (
+                <span
+                  className={cn(
+                    "ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium",
+                    item.badgeClass
+                  )}
+                >
+                  {item.dotClass && (
+                    <span
+                      className={cn("size-1.5 rounded-full", item.dotClass)}
+                    />
+                  )}
+                  {item.count}
+                </span>
+              )}
+            </span>
           </Link>
         );
       })}

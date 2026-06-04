@@ -18,7 +18,7 @@ function RunItem({ run }: { run: WorkflowRun }) {
   return (
     // The title link is stretched over the card; the avatar sits above it
     // (z-10) so its hover card doesn't fight the link's hover state
-    <div className="group relative flex flex-col gap-1.5 rounded-lg border p-3 transition-colors hover:bg-accent">
+    <div className="group relative flex flex-col gap-1.5 rounded-lg border bg-card p-3 transition-colors hover:bg-accent">
       <div className="flex items-center justify-between gap-2">
         <StatusBadge status={run.status} conclusion={run.conclusion} />
         {run.actor && (
@@ -73,7 +73,7 @@ function RepoColumn({
   const shortName = repo.split("/")[1] ?? repo;
 
   return (
-    <Card className="flex min-w-0 flex-col">
+    <Card className="flex min-w-80 flex-1 flex-col bg-muted/50">
       <CardHeader>
         <CardTitle className="flex items-center justify-between gap-2 text-sm">
           <span className="truncate font-mono">{shortName}</span>
@@ -141,12 +141,8 @@ export function DeploymentsView({ repos }: { repos: string[] }) {
         </p>
       )}
 
-      <div
-        className="grid items-start gap-4"
-        style={{
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-        }}
-      >
+      {/* Few repos: columns stretch to fill. Many repos: horizontal scroll. */}
+      <div className="-m-1 flex items-start gap-4 overflow-x-auto p-1 pb-2">
         {repos.map((repo) => (
           <RepoColumn
             key={repo}

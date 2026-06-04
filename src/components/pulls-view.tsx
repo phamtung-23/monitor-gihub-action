@@ -17,7 +17,7 @@ function PullRequestItem({ pr }: { pr: PullRequest }) {
   return (
     // The title link is stretched over the card; avatars sit above it (z-10)
     // so their hover cards don't fight the link's hover state
-    <div className="group relative flex flex-col gap-1.5 rounded-lg border p-3 transition-colors hover:bg-accent">
+    <div className="group relative flex flex-col gap-1.5 rounded-lg border bg-card p-3 transition-colors hover:bg-accent">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {pr.author && (
@@ -88,7 +88,7 @@ function RepoColumn({
   const shortName = repo.split("/")[1] ?? repo;
 
   return (
-    <Card className="flex min-w-0 flex-col">
+    <Card className="flex min-w-80 flex-1 flex-col bg-muted/50">
       <CardHeader>
         <CardTitle className="flex items-center justify-between gap-2 text-sm">
           <span className="truncate font-mono">{shortName}</span>
@@ -108,9 +108,23 @@ function RepoColumn({
             <Skeleton key={i} className="h-24 w-full" />
           ))}
         {!isLoading && !error && pullRequests.length === 0 && (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            No open pull requests. 🎉
-          </p>
+          <div className="flex flex-col items-center gap-2 py-6 text-muted-foreground">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-6"
+            >
+              <circle cx="18" cy="18" r="3" />
+              <circle cx="6" cy="6" r="3" />
+              <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+              <line x1="6" x2="6" y1="9" y2="21" />
+            </svg>
+            <p className="text-sm">No open pull requests.</p>
+          </div>
         )}
         {pullRequests.map((pr) => (
           <PullRequestItem key={pr.id} pr={pr} />
@@ -155,12 +169,8 @@ export function PullsView({ repos }: { repos: string[] }) {
         </p>
       )}
 
-      <div
-        className="grid items-start gap-4"
-        style={{
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-        }}
-      >
+      {/* Few repos: columns stretch to fill. Many repos: horizontal scroll. */}
+      <div className="-m-1 flex items-start gap-4 overflow-x-auto p-1 pb-2">
         {repos.map((repo) => (
           <RepoColumn
             key={repo}
