@@ -219,8 +219,8 @@ function CommitListShell({
   onLoadMore: () => void;
 }) {
   return (
-    /* Mobile: items scroll horizontally. md+: vertical list. */
-    <CardContent className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible">
+    /* Mobile: items scroll horizontally. md+: vertical list scrolling inside the column. */
+    <CardContent className="flex gap-2 overflow-x-auto md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto">
       {error && (
         <p className="w-full shrink-0 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
           Failed to load commits.
@@ -265,7 +265,7 @@ function RepoColumn({
   const [selected, setSelected] = useState<string>(ALL_BRANCHES);
 
   return (
-    <Card className="flex w-full min-w-0 flex-col bg-muted/50 md:min-w-80 md:flex-1">
+    <Card className="flex w-full min-w-0 flex-col bg-muted/50 md:h-full md:min-w-80 md:flex-1">
       <CardHeader className="gap-2">
         <CardTitle className="flex items-center justify-between gap-2 text-sm">
           <span className="truncate font-mono">{shortName}</span>
@@ -337,8 +337,8 @@ export function CommitsView({ repos }: { repos: string[] }) {
         </div>
       </div>
 
-      {/* Mobile: repos stack vertically. md+: kanban columns with horizontal scroll. */}
-      <div className="-m-1 flex flex-col gap-4 p-1 pb-2 md:flex-row md:items-start md:overflow-x-auto">
+      {/* Mobile: repos stack vertically. md+: full-height kanban columns, items scroll inside. */}
+      <div className="-m-1 flex flex-col gap-4 p-1 pb-2 md:h-[calc(100dvh-6rem)] md:flex-row md:overflow-x-auto">
         {repos.map((repo) => (
           <RepoColumn key={repo} repo={repo} onUpdated={setLastUpdated} />
         ))}
