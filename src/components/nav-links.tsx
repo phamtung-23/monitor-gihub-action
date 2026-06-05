@@ -44,6 +44,21 @@ const ICONS = {
       <line x1="6" x2="6" y1="9" y2="21" />
     </svg>
   ),
+  commits: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-4"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <line x1="3" x2="9" y1="12" y2="12" />
+      <line x1="15" x2="21" y1="12" y2="12" />
+    </svg>
+  ),
   settings: (
     <svg
       viewBox="0 0 24 24"
@@ -102,6 +117,14 @@ export function NavLinks({
       count: prCount,
       badgeClass:
         "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+      dotClass: null,
+    },
+    {
+      href: "/commits",
+      label: "Commits",
+      icon: ICONS.commits,
+      count: 0,
+      badgeClass: "",
       dotClass: null,
     },
     {

@@ -18,7 +18,7 @@ const DOT_PALETTE = [
   "bg-cyan-500",
 ];
 
-function hashCode(s: string): number {
+export function hashCode(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) {
     h = (h * 31 + s.charCodeAt(i)) | 0;

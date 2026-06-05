@@ -4,14 +4,26 @@ import { useState } from "react";
 import { useSWRConfig } from "swr";
 import { Button } from "@/components/ui/button";
 
-export function RefreshButton({ keys }: { keys: string[] }) {
+export function RefreshButton({
+  keys = [],
+  prefix,
+}: {
+  keys?: string[];
+  /** Also revalidate every SWR key starting with this prefix */
+  prefix?: string;
+}) {
   const [refreshing, setRefreshing] = useState(false);
   const { mutate } = useSWRConfig();
 
   async function refresh() {
     setRefreshing(true);
     try {
-      await Promise.all(keys.map((key) => mutate(key)));
+      await Promise.all([
+        ...keys.map((key) => mutate(key)),
+        prefix
+          ? mutate((key) => typeof key === "string" && key.startsWith(prefix))
+          : Promise.resolve(),
+      ]);
     } finally {
       setRefreshing(false);
     }

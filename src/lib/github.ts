@@ -302,6 +302,182 @@ export async function getPullRequestsPage(
   return pullRequests;
 }
 
+export type Commit = {
+  sha: string;
+  repo: string;
+  /** First line of the commit message */
+  message: string;
+  author: { login: string; avatarUrl: string } | null;
+  authorName: string;
+  date: string;
+  htmlUrl: string;
+  /** Branch this commit was found on (a commit can exist on several) */
+  branch: string;
+};
+
+export async function getBranches(
+  token: string,
+  repoFullName: string
+): Promise<{ defaultBranch: string; branches: string[] }> {
+  const [owner, repo] = repoFullName.split("/");
+  const octokit = new Octokit({ auth: token });
+
+  const [{ data: repoInfo }, branchPages] = await Promise.all([
+    octokit.rest.repos.get({ owner, repo }),
+    (async () => {
+      const names: string[] = [];
+      // Cap at 2 pages (200 branches) to keep the dropdown snappy
+      for (let page = 1; page <= 2; page++) {
+        const { data } = await octokit.rest.repos.listBranches({
+          owner,
+          repo,
+          per_page: 100,
+          page,
+        });
+        names.push(...data.map((b) => b.name));
+        if (data.length < 100) break;
+      }
+      return names;
+    })(),
+  ]);
+
+  const defaultBranch = repoInfo.default_branch;
+  // Default branch first, the rest alphabetical
+  const branches = [
+    ...(branchPages.includes(defaultBranch) ? [defaultBranch] : []),
+    ...branchPages.filter((b) => b !== defaultBranch).sort(),
+  ];
+  return { defaultBranch, branches };
+}
+
+export async function getCommits(
+  token: string,
+  repoFullName: string,
+  branch: string,
+  page: number
+): Promise<Commit[]> {
+  const [owner, repo] = repoFullName.split("/");
+  const octokit = new Octokit({ auth: token });
+  const { data } = await octokit.rest.repos.listCommits({
+    owner,
+    repo,
+    sha: branch,
+    per_page: PAGE_SIZE,
+    page,
+  });
+  return data.map((c) => ({
+    sha: c.sha,
+    repo: repoFullName,
+    message: c.commit.message.split("\n")[0],
+    author: c.author
+      ? { login: c.author.login, avatarUrl: c.author.avatar_url }
+      : null,
+    authorName: c.commit.author?.name ?? c.author?.login ?? "unknown",
+    date: c.commit.author?.date ?? c.commit.committer?.date ?? "",
+    htmlUrl: c.html_url,
+    branch,
+  }));
+}
+
+type GqlCommitNode = {
+  oid: string;
+  messageHeadline: string;
+  committedDate: string;
+  url: string;
+  author: {
+    name: string | null;
+    avatarUrl: string;
+    user: { login: string } | null;
+  } | null;
+};
+
+/**
+ * Newest commits across ALL branches of a repo, merged & deduped.
+ * One GraphQL query: 50 most recently active branches × 10 commits each.
+ */
+export async function getAllBranchCommits(
+  token: string,
+  repoFullName: string
+): Promise<Commit[]> {
+  const [owner, repo] = repoFullName.split("/");
+  const octokit = new Octokit({ auth: token });
+
+  const data = await octokit.graphql<{
+    repository: {
+      defaultBranchRef: { name: string } | null;
+      refs: {
+        nodes: {
+          name: string;
+          target: { history?: { nodes: GqlCommitNode[] } } | null;
+        }[];
+      };
+    } | null;
+  }>(
+    `query ($owner: String!, $repo: String!) {
+      repository(owner: $owner, name: $repo) {
+        defaultBranchRef { name }
+        refs(
+          refPrefix: "refs/heads/"
+          first: 50
+          orderBy: { field: TAG_COMMIT_DATE, direction: DESC }
+        ) {
+          nodes {
+            name
+            target {
+              ... on Commit {
+                history(first: 10) {
+                  nodes {
+                    oid
+                    messageHeadline
+                    committedDate
+                    url
+                    author { name avatarUrl user { login } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }`,
+    { owner, repo }
+  );
+
+  const repository = data.repository;
+  if (!repository) return [];
+  const defaultBranch = repository.defaultBranchRef?.name;
+
+  // Process the default branch first so commits already merged into it are
+  // tagged with it (feature branches inherit shared history)
+  const refs = [...repository.refs.nodes].sort(
+    (a, b) =>
+      Number(b.name === defaultBranch) - Number(a.name === defaultBranch)
+  );
+
+  const bySha = new Map<string, Commit>();
+  for (const ref of refs) {
+    for (const node of ref.target?.history?.nodes ?? []) {
+      if (bySha.has(node.oid)) continue;
+      bySha.set(node.oid, {
+        sha: node.oid,
+        repo: repoFullName,
+        message: node.messageHeadline,
+        author: node.author?.user
+          ? { login: node.author.user.login, avatarUrl: node.author.avatarUrl }
+          : null,
+        authorName: node.author?.name ?? node.author?.user?.login ?? "unknown",
+        date: node.committedDate,
+        htmlUrl: node.url,
+        branch: ref.name,
+      });
+    }
+  }
+
+  return [...bySha.values()]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 100);
+}
+
 export type GithubUser = {
   login: string;
   name: string | null;
