@@ -7,21 +7,13 @@ import { timeAgo } from "@/lib/format";
 import type { Commit } from "@/lib/github";
 import { hashCode } from "@/components/repo-badge";
 import { cn } from "@/lib/utils";
+import { ALL_BRANCHES, BranchCombobox } from "@/components/branch-combobox";
 import { LoadMoreButton } from "@/components/load-more-button";
 import { RefreshButton } from "@/components/refresh-button";
 import { UserHoverCard } from "@/components/user-hover-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const ALL_BRANCHES = "__all__";
 
 type BranchData = { defaultBranch: string; branches: string[] };
 type CommitsData = { commits: Commit[] };
@@ -270,40 +262,13 @@ function RepoColumn({
         <CardTitle className="flex items-center justify-between gap-2 text-sm">
           <span className="truncate font-mono">{shortName}</span>
         </CardTitle>
-        <Select value={selected} onValueChange={setSelected}>
-          <SelectTrigger size="sm" className="w-full bg-background">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="size-3.5 shrink-0 text-muted-foreground"
-            >
-              <line x1="6" x2="6" y1="3" y2="15" />
-              <circle cx="18" cy="6" r="3" />
-              <circle cx="6" cy="18" r="3" />
-              <path d="M18 9a9 9 0 0 1-9 9" />
-            </svg>
-            <span className="min-w-0 flex-1 truncate text-left font-mono text-xs">
-              <SelectValue />
-            </span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_BRANCHES} className="text-xs font-medium">
-              All branches
-            </SelectItem>
-            {(branchData?.branches ?? []).map((name) => (
-              <SelectItem key={name} value={name} className="font-mono text-xs">
-                {name}
-                {name === branchData?.defaultBranch && (
-                  <span className="text-muted-foreground"> (default)</span>
-                )}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <BranchCombobox
+          branches={branchData?.branches ?? []}
+          defaultBranch={branchData?.defaultBranch}
+          value={selected}
+          onChange={setSelected}
+          loading={!branchData}
+        />
       </CardHeader>
       {/* Re-mount on branch change so pagination state resets */}
       {selected === ALL_BRANCHES ? (
