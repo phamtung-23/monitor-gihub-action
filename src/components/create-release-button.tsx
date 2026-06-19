@@ -38,12 +38,19 @@ export function CreateReleaseButton({ repo }: { repo: string }) {
   const [bump, setBump] = useState<BumpKey>("patch");
   const [target, setTarget] = useState("");
   const [name, setName] = useState("");
+  const [nameEdited, setNameEdited] = useState(false);
   const [body, setBody] = useState("");
   const [generateNotes, setGenerateNotes] = useState(true);
   const [draft, setDraft] = useState(false);
   const [prerelease, setPrerelease] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Set the version tag and mirror it into the title until the user edits either
+  function applyTag(value: string) {
+    setTag(value);
+    if (!nameEdited) setName(value);
+  }
 
   const { data: release } = useSWR<LatestRelease>(
     open ? `/api/releases/latest?repo=${encodeURIComponent(repo)}` : null,
@@ -52,7 +59,7 @@ export function CreateReleaseButton({ repo }: { repo: string }) {
       revalidateOnFocus: false,
       onSuccess: (d) => {
         // Pre-fill the patch bump unless the user already typed a version
-        if (!tagEdited) setTag(d.suggestions.patch);
+        if (!tagEdited) applyTag(d.suggestions.patch);
       },
     }
   );
@@ -69,7 +76,7 @@ export function CreateReleaseButton({ repo }: { repo: string }) {
   function pickBump(key: BumpKey) {
     setBump(key);
     setTagEdited(false);
-    if (release) setTag(release.suggestions[key]);
+    if (release) applyTag(release.suggestions[key]);
   }
 
   function reset() {
@@ -78,6 +85,7 @@ export function CreateReleaseButton({ repo }: { repo: string }) {
     setBump("patch");
     setTarget("");
     setName("");
+    setNameEdited(false);
     setBody("");
     setGenerateNotes(true);
     setDraft(false);
@@ -174,7 +182,7 @@ export function CreateReleaseButton({ repo }: { repo: string }) {
               <Input
                 value={tag}
                 onChange={(e) => {
-                  setTag(e.target.value);
+                  applyTag(e.target.value);
                   setTagEdited(true);
                 }}
                 placeholder="v1.0.0"
@@ -221,12 +229,15 @@ export function CreateReleaseButton({ repo }: { repo: string }) {
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-muted-foreground">
-              Release title (optional)
+              Release title
             </label>
             <Input
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={tag || "Defaults to the tag"}
+              onChange={(e) => {
+                setName(e.target.value);
+                setNameEdited(true);
+              }}
+              placeholder={tag || "Release title"}
             />
           </div>
 
