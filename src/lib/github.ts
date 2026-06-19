@@ -478,6 +478,94 @@ export async function getAllBranchCommits(
     .slice(0, 100);
 }
 
+export type LatestRelease = {
+  latestTag: string | null;
+  /** Suggested next versions, preserving the latest tag's "v" prefix style */
+  suggestions: { major: string; minor: string; patch: string };
+};
+
+/** Read latest release/tag and compute next-version suggestions */
+export async function getLatestRelease(
+  token: string,
+  repoFullName: string
+): Promise<LatestRelease> {
+  const [owner, repo] = repoFullName.split("/");
+  const octokit = new Octokit({ auth: token });
+
+  let latestTag: string | null = null;
+  try {
+    const { data } = await octokit.rest.repos.getLatestRelease({ owner, repo });
+    latestTag = data.tag_name;
+  } catch {
+    // No published release — fall back to the newest tag, if any
+    try {
+      const { data } = await octokit.rest.repos.listTags({
+        owner,
+        repo,
+        per_page: 1,
+      });
+      latestTag = data[0]?.name ?? null;
+    } catch {
+      latestTag = null;
+    }
+  }
+
+  return { latestTag, suggestions: bumpVersions(latestTag) };
+}
+
+/** Compute major/minor/patch bumps from a tag like "v1.4.9" → v2.0.0 / v1.5.0 / v1.4.10 */
+function bumpVersions(tag: string | null): {
+  major: string;
+  minor: string;
+  patch: string;
+} {
+  const prefix = tag?.startsWith("v") ? "v" : "";
+  const match = tag?.match(/(\d+)\.(\d+)\.(\d+)/);
+  if (!match) {
+    const base = `${prefix || "v"}1.0.0`;
+    return { major: base, minor: base, patch: base };
+  }
+  const [maj, min, pat] = [
+    Number(match[1]),
+    Number(match[2]),
+    Number(match[3]),
+  ];
+  return {
+    major: `${prefix}${maj + 1}.0.0`,
+    minor: `${prefix}${maj}.${min + 1}.0`,
+    patch: `${prefix}${maj}.${min}.${pat + 1}`,
+  };
+}
+
+export async function createRelease(
+  token: string,
+  repoFullName: string,
+  opts: {
+    tag: string;
+    target: string;
+    name: string;
+    body?: string;
+    draft: boolean;
+    prerelease: boolean;
+    generateNotes: boolean;
+  }
+): Promise<{ tag: string; htmlUrl: string }> {
+  const [owner, repo] = repoFullName.split("/");
+  const octokit = new Octokit({ auth: token });
+  const { data } = await octokit.rest.repos.createRelease({
+    owner,
+    repo,
+    tag_name: opts.tag,
+    target_commitish: opts.target,
+    name: opts.name || opts.tag,
+    body: opts.body || undefined,
+    draft: opts.draft,
+    prerelease: opts.prerelease,
+    generate_release_notes: opts.generateNotes,
+  });
+  return { tag: data.tag_name, htmlUrl: data.html_url };
+}
+
 export type GithubUser = {
   login: string;
   name: string | null;

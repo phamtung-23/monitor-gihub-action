@@ -8,6 +8,7 @@ import type { PullRequest, PullRequestState, RepoError } from "@/lib/github";
 import { ClosePrButton } from "@/components/close-pr-button";
 import { LoadMoreButton } from "@/components/load-more-button";
 import { CopyLinkButton } from "@/components/copy-link-button";
+import { CreatePrButton } from "@/components/create-pr-button";
 import { MergeButton } from "@/components/merge-button";
 import { RefreshButton } from "@/components/refresh-button";
 import { UserHoverCard } from "@/components/user-hover-card";
@@ -193,11 +194,14 @@ function RepoColumn({
   return (
     <Card className="flex w-full min-w-0 flex-col bg-muted/50 md:h-full md:min-w-80 md:flex-1">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between gap-2 text-sm">
+        <CardTitle className="flex items-center gap-2 text-sm">
           <span className="truncate font-mono">{shortName}</span>
           <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
             {allPulls.length}
           </span>
+          <div className="ml-auto shrink-0">
+            <CreatePrButton repos={[repo]} />
+          </div>
         </CardTitle>
       </CardHeader>
       {/* Mobile: items scroll horizontally. md+: vertical list scrolling inside the column. */}

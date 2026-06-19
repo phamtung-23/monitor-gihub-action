@@ -14,6 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 export const ALL_BRANCHES = "__all__";
 
@@ -23,6 +24,9 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   loading?: boolean;
+  /** Show the "All branches" option (commits view); off for branch pickers */
+  includeAll?: boolean;
+  placeholder?: string;
 };
 
 /** Branch picker with built-in search (Select can't filter) */
@@ -32,6 +36,8 @@ export function BranchCombobox({
   value,
   onChange,
   loading = false,
+  includeAll = true,
+  placeholder = "Select branch",
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -39,6 +45,9 @@ export function BranchCombobox({
     onChange(next);
     setOpen(false);
   }
+
+  const label =
+    value === ALL_BRANCHES ? "All branches" : value || placeholder;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -61,8 +70,13 @@ export function BranchCombobox({
             <circle cx="6" cy="18" r="3" />
             <path d="M18 9a9 9 0 0 1-9 9" />
           </svg>
-          <span className="min-w-0 flex-1 truncate text-left font-mono text-xs">
-            {value === ALL_BRANCHES ? "All branches" : value}
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate text-left font-mono text-xs",
+              !value && "text-muted-foreground"
+            )}
+          >
+            {label}
           </span>
           <svg
             viewBox="0 0 24 24"
@@ -86,13 +100,15 @@ export function BranchCombobox({
               {loading ? "Loading branches..." : "No branch found."}
             </CommandEmpty>
             <CommandGroup>
-              <CommandItem
-                value={ALL_BRANCHES}
-                onSelect={() => select(ALL_BRANCHES)}
-                data-checked={value === ALL_BRANCHES}
-              >
-                All branches
-              </CommandItem>
+              {includeAll && (
+                <CommandItem
+                  value={ALL_BRANCHES}
+                  onSelect={() => select(ALL_BRANCHES)}
+                  data-checked={value === ALL_BRANCHES}
+                >
+                  All branches
+                </CommandItem>
+              )}
               {branches.map((name) => (
                 <CommandItem
                   key={name}

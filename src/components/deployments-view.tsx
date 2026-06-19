@@ -9,6 +9,7 @@ import { isRunning } from "@/lib/status";
 import type { WorkflowRun, RepoError } from "@/lib/github";
 import { StatusBadge } from "@/components/status-badge";
 import { CopyLinkButton } from "@/components/copy-link-button";
+import { CreateReleaseButton } from "@/components/create-release-button";
 import { RefreshButton } from "@/components/refresh-button";
 import { UserHoverCard } from "@/components/user-hover-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -109,7 +110,7 @@ function RepoColumn({
   return (
     <Card className="flex w-full min-w-0 flex-col bg-muted/50 md:h-full md:min-w-80 md:flex-1">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between gap-2 text-sm">
+        <CardTitle className="flex items-center gap-2 text-sm">
           <span className="truncate font-mono">{shortName}</span>
           {runningCount > 0 ? (
             <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
@@ -122,6 +123,9 @@ function RepoColumn({
               idle
             </span>
           )}
+          <div className="ml-auto shrink-0">
+            <CreateReleaseButton repo={repo} />
+          </div>
         </CardTitle>
       </CardHeader>
       {/* Mobile: items scroll horizontally. md+: vertical list scrolling inside the column. */}
